@@ -1,41 +1,39 @@
 import { Injectable } from '@nestjs/common';
-import { User } from './user.model';
+import { User } from './user.entity';
 import { CreateUserDto } from './create-user.dto';
 import { UpdateUserDto } from './update-user.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class UsersService {
-    private users: User[] = [];
-    private idCounter = 1;
+  constructor(
+    @InjectRepository(User)
+    private usersRepo: Repository<User>,
+  ) {}
+    
   
-    findAll(): User[] {
-      return this.users;
+    findAll() {
+      return this.usersRepo.find();
     }
   
-    findOne(id: number): User | undefined {
-      return this.users.find(user => user.id === id);
+    findOne(id: number) {
+      return this.usersRepo.findOneBy({id});
     }
   
-    create(createUserDto: CreateUserDto): User {
-      const newUser: User = {
-        id: this.idCounter++,
-        ...createUserDto,
-      };
-      this.users.push(newUser);
-      return newUser;
+    create(data: CreateUserDto) {
+      const user = this.usersRepo.create(data);
+      return this.usersRepo.save(user);
     }
   
-    update(id: number, updateUserDto: UpdateUserDto): User | undefined {
-      const user = this.findOne(id);
-      if (!user) return undefined;
-      Object.assign(user, updateUserDto);
-      return user;
+  
+    async update(id: number, data: UpdateUserDto) {
+      await this.usersRepo.update(id, data);
+      return this.findOne(id);
     }
   
-    remove(id: number): boolean {
-      const index = this.users.findIndex(user => user.id === id);
-      if (index === -1) return false;
-      this.users.splice(index, 1);
-      return true;
+    async remove(id: number) {
+      const result = await this.usersRepo.delete(id);
+      return result.affected! > 0;
     }
 }
